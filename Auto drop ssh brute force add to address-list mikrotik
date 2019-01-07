@@ -1,0 +1,25 @@
+/ip firewall filter
+add action=drop chain=input comment="drop ftp brute forcers" dst-port=21 protocol=tcp src-address-list=ftp_blacklist
+add action=accept chain=output content="530 Login incorrect" dst-limit=1/1m,9,dst-address/1m protocol=tcp
+add action=add-dst-to-address-list address-list=ftp_blacklist address-list-timeout=3h chain=output content="530 Login incorrect" protocol=tcp
+add action=drop chain=input comment="drop ssh brute forcers" dst-port=22 protocol=tcp src-address-list=ssh_blacklist
+add action=drop chain=input dst-port=2222 protocol=tcp src-address-list=ssh_blacklist
+add action=add-src-to-address-list address-list=ssh_blacklist address-list-timeout=1w3d chain=input connection-state=new dst-port=22 protocol=tcp src-address-list=ssh_stage3
+add action=add-src-to-address-list address-list=ssh_blacklist address-list-timeout=1w3d chain=input connection-state=new dst-port=2222 protocol=tcp src-address-list=ssh_stage3
+add action=add-src-to-address-list address-list=ssh_stage3 address-list-timeout=1m chain=input connection-state=new dst-port=22 protocol=tcp src-address-list=ssh_stage2
+add action=add-src-to-address-list address-list=ssh_stage3 address-list-timeout=1m chain=input connection-state=new dst-port=2222 protocol=tcp src-address-list=ssh_stage2
+add action=add-src-to-address-list address-list=ssh_stage2 address-list-timeout=1m chain=input connection-state=new dst-port=22 protocol=tcp src-address-list=ssh_stage1
+add action=add-src-to-address-list address-list=ssh_stage2 address-list-timeout=1m chain=input connection-state=new dst-port=2222 protocol=tcp src-address-list=ssh_stage1
+add action=add-src-to-address-list address-list=ssh_stage1 address-list-timeout=1m chain=input connection-state=new dst-port=22 protocol=tcp
+add action=add-src-to-address-list address-list=ssh_stage1 address-list-timeout=1m chain=input connection-state=new dst-port=2222 protocol=tcp
+add action=drop chain=forward comment="drop ssh brute downstream" dst-port=22 protocol=tcp src-address-list=ssh_blacklist
+add action=drop chain=forward dst-port=2222 protocol=tcp src-address-list=ssh_blacklist
+add chain=input protocol=tcp dst-port=23 src-address-list=black_list action=drop comment="drop telnet brute forcers" disabled=no
+add chain=input protocol=tcp dst-port=23 connection-state=new src-address-list=telnet_stage3 action=add-src-to-address-list address-list=black_list address-list-timeout=1d comment="" disabled=no
+add chain=input protocol=tcp dst-port=23 connection-state=new src-address-list=telnet_stage2 action=add-src-to-address-list address-list=telnet_stage3 address-list-timeout=1m comment="" disabled=no
+add chain=input protocol=tcp dst-port=23 connection-state=new src-address-list=telnet_stage1 action=add-src-to-address-list address-list=telnet_stage2 address-list-timeout=1m comment="" disabled=no
+add chain=input protocol=tcp dst-port=23 connection-state=new action=add-src-to-address-list address-list=telnet_stage1 address-list-timeout=1m comment="" disabled=no
+add action=drop chain=input comment=wannacrypt dst-port=139,445,3389 protocol=tcp
+add action=drop chain=input dst-port=139,445,3389,20004,7533,5678 protocol=udp
+add action=drop chain=forward dst-port=139,445,3389 protocol=udp
+add action=drop chain=forward dst-port=139,445,3389 protocol=tcp
